@@ -7,7 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		06B5A99624324A4B00DDCB4A /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 06B5A99524324A4B00DDCB4A /* main.cpp */; };
+		06B5A99E24324A5A00DDCB4A /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06B5A99D24324A5A00DDCB4A /* GLUT.framework */; };
+		06B5A9A024324A6100DDCB4A /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06B5A99F24324A6100DDCB4A /* OpenGL.framework */; };
+		06B5A9A424324A8400DDCB4A /* framework.cp in Sources */ = {isa = PBXBuildFile; fileRef = 06B5A9A324324A8400DDCB4A /* framework.cp */; };
+		06B5A9A724324A9000DDCB4A /* Skeleton.cp in Sources */ = {isa = PBXBuildFile; fileRef = 06B5A9A624324A9000DDCB4A /* Skeleton.cp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -24,7 +27,11 @@
 
 /* Begin PBXFileReference section */
 		06B5A99224324A4B00DDCB4A /* grafika_2020_hf1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = grafika_2020_hf1; sourceTree = BUILT_PRODUCTS_DIR; };
-		06B5A99524324A4B00DDCB4A /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		06B5A99D24324A5A00DDCB4A /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = System/Library/Frameworks/GLUT.framework; sourceTree = SDKROOT; };
+		06B5A99F24324A6100DDCB4A /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		06B5A9A324324A8400DDCB4A /* framework.cp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = framework.cp; sourceTree = "<group>"; };
+		06B5A9A524324A8B00DDCB4A /* framework.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = framework.h; sourceTree = "<group>"; };
+		06B5A9A624324A9000DDCB4A /* Skeleton.cp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Skeleton.cp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,6 +39,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06B5A99E24324A5A00DDCB4A /* GLUT.framework in Frameworks */,
+				06B5A9A024324A6100DDCB4A /* OpenGL.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -43,6 +52,7 @@
 			children = (
 				06B5A99424324A4B00DDCB4A /* grafika_2020_hf1 */,
 				06B5A99324324A4B00DDCB4A /* Products */,
+				06B5A99C24324A5A00DDCB4A /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -57,9 +67,20 @@
 		06B5A99424324A4B00DDCB4A /* grafika_2020_hf1 */ = {
 			isa = PBXGroup;
 			children = (
-				06B5A99524324A4B00DDCB4A /* main.cpp */,
+				06B5A9A624324A9000DDCB4A /* Skeleton.cp */,
+				06B5A9A524324A8B00DDCB4A /* framework.h */,
+				06B5A9A324324A8400DDCB4A /* framework.cp */,
 			);
 			path = grafika_2020_hf1;
+			sourceTree = "<group>";
+		};
+		06B5A99C24324A5A00DDCB4A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				06B5A99F24324A6100DDCB4A /* OpenGL.framework */,
+				06B5A99D24324A5A00DDCB4A /* GLUT.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -119,7 +140,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				06B5A99624324A4B00DDCB4A /* main.cpp in Sources */,
+				06B5A9A424324A8400DDCB4A /* framework.cp in Sources */,
+				06B5A9A724324A9000DDCB4A /* Skeleton.cp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

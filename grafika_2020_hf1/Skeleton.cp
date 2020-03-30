@@ -62,6 +62,8 @@ const char * const fragmentSource = R"(
 GPUProgram gpuProgram; // vertex and fragment shaders
 unsigned int vao;	   // virtual world on the GPU
 
+const int nv = 1000;
+
 // Initialization, create an OpenGL context
 void onInitialization() {
 	glViewport(0, 0, windowWidth, windowHeight);
@@ -73,9 +75,13 @@ void onInitialization() {
 	glGenBuffers(1, &vbo);	// Generate 1 buffer
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	// Geometry with 24 bytes (6 floats or 3 x 2 coordinates)
-	float vertices[] = { -0.8f, -0.8f, -0.6f, 1.0f, 0.8f, -0.2f };
+    vec2 vertices[nv];
+    for (int i = 0; i < nv ; i++) {
+        float fi = i * 2 * M_PI / nv;
+        vertices[i] = vec2(cosf(fi), sinf(fi));
+    }
 	glBufferData(GL_ARRAY_BUFFER, 	// Copy to GPU target
-		sizeof(vertices),  // # bytes
+		sizeof(vec2) * nv,  // # bytes
 		vertices,	      	// address
 		GL_STATIC_DRAW);	// we do not change later
 
@@ -95,9 +101,9 @@ void onDisplay() {
 
 	// Set color to (0, 1, 0) = green
 	int location = glGetUniformLocation(gpuProgram.getId(), "color");
-	glUniform3f(location, 0.0f, 1.0f, 0.0f); // 3 floats
+	glUniform3f(location, 0.18f, 0.31f, 0.31f); // 3 floats
 
-	float MVPtransf[4][4] = { 1, 0, 0, 0,    // MVP matrix, 
+	float MVPtransf[4][4] = { 1, 0, 0, 0,    // MVP matrix,
 							  0, 1, 0, 0,    // row-major!
 							  0, 0, 1, 0,
 							  0, 0, 0, 1 };
@@ -106,7 +112,7 @@ void onDisplay() {
 	glUniformMatrix4fv(location, 1, GL_TRUE, &MVPtransf[0][0]);	// Load a 4x4 row-major float matrix to the specified location
 
 	glBindVertexArray(vao);  // Draw call
-	glDrawArrays(GL_TRIANGLES, 0 /*startIdx*/, 3 /*# Elements*/);
+	glDrawArrays(GL_TRIANGLE_FAN, 0 /*startIdx*/, nv /*# Elements*/);
 
 	glutSwapBuffers(); // exchange buffers for double buffering
 }

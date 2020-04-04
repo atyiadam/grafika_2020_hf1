@@ -33,7 +33,6 @@
 //=============================================================================================
 #include "framework.h"
 
-// vertex shader in GLSL: It is a Raw string (C++11) since it contains new line characters
 const char * const vertexSource = R"(
     #version 330                // Shader 3.3
     precision highp float;        // normal floats, makes no difference on desktop computers
@@ -51,7 +50,6 @@ const char * const vertexSource = R"(
     }
 )";
 
-// fragment shader in GLSL
 const char * const fragmentSource = R"(
     #version 330            // Shader 3.3
     precision highp float;    // normal floats, makes no difference on desktop computers
@@ -64,7 +62,7 @@ const char * const fragmentSource = R"(
     }
 )";
 
-GPUProgram gpuProgram; // vertex and fragment shaders
+GPUProgram gpuProgram;
 
 class Point {
     unsigned int vao, vbo;
@@ -100,9 +98,9 @@ public:
             vec4 mVertex = vec4(x, y, 0, 1);
             vertices.push_back(mVertex.x);
             vertices.push_back(mVertex.y);
-            vertices.push_back(1);
-            vertices.push_back(0);
-            vertices.push_back(0);
+            vertices.push_back(0.9f);
+            vertices.push_back(0.9f);
+            vertices.push_back(0.9f);
             
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
             glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_DYNAMIC_DRAW);
@@ -122,18 +120,33 @@ public:
 
 
 class SiriusCircle {
-    unsigned int vao, vbo;
-    unsigned int nv = 5000;
+    unsigned int vao, vbo, vao1, vbo1;
+    unsigned int nv = 50;
     
     vec4 origin;
+    vec4 dummyOrigin;
     
     float r = 1.0f;
+    float dummyRadius;
     
+    float aSide = 0.0f;
+    float bSide = 0.0f;
+    float cSide = 0.0f;
+    
+    float alpha = 0.0f;
+    float beta = 0.0f;
+    float gamma = 0.0f;
+    
+    std::vector<float> origins;
+    std::vector<float> triangleVertices;
+
     std::vector<float> vertices;
+    std::vector<float> verticesCopy;
     std::vector<float> points;
-    
+        
 public:
-    void create() {
+    std::vector<float> ears;
+    void create(float a, float b, float c, float d, float e, float f) {
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
         
@@ -142,25 +155,247 @@ public:
         
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
-        
+
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(0));
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
         
+
+        calculateOrigin(a, b, c, d);
+        aSide = calculateSides(a, b, c, d);
+
+        calculateOrigin(c, d, e, f);
+        bSide = calculateSides(c, d, e, f);
+
+        calculateOrigin(e, f, a, b);
+        cSide = calculateSides(e, f, a, b);
+                
+        copyVertices();
+        
+        calculateEars();
+        
+        calculateAngles();
+        
+        float angleSum = alpha + beta + gamma;
+        printf("Alpha: %3.2f, Beta: %3.2f, Gamma: %3.2f, Angle sum: %3.2f \n", alpha, beta, gamma, angleSum);
+        printf("a: %3.2f, b: %3.2f, c: %3.2f \n", aSide, bSide, cSide);
+        
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_DYNAMIC_DRAW);
+    }
+
+    
+    float calculateSides(float a, float b, float c, float d) {
+        float sideLength = 0.0f;
+        float cx = (-a * a * d - b * b * d + b * c * c + b * d * d + b - d) / 2 / ( b * c - a * d);
+        float cy = (a * a * c - a * c * c - a * d * d - a + b * b * c + c) / 2 / (b * c - a * d);
+        
+        dummyOrigin = vec4(cx, cy, 0, 0);
+        
+        origins.push_back(dummyOrigin.x);
+        origins.push_back(dummyOrigin.y);
+        
+        dummyRadius = sqrt((cx*cx) + (cy*cy) - 1);
+        
+        vec4 p1 = vec4(a, b, 0, 0);
+        vec4 p2 = vec4(c, d, 0, 0);
+        
+        vec4 origo = vec4(0, 0, 0, 0);
+        
+        vec4 cToOrigo = dummyOrigin - origo;
+        vec4 cToP1 = dummyOrigin - p1;
+        vec4 cToP2 = dummyOrigin - p2;
+        
+        float x, y, dx, dy;
+        
+        float ctoorigoDotctop1 = dot(cToOrigo, cToP1);
+        float ctoorigoDotctop2 = dot(cToOrigo, cToP2);
+        
+        float cToOrLength = sqrt((origo.x - dummyOrigin.x)*(origo.x - dummyOrigin.x) + (origo.y - dummyOrigin.y)*(origo.y - dummyOrigin.y) );
+        
+        float cToP1Length = sqrt((p1.x - dummyOrigin.x)*(p1.x - dummyOrigin.x) + (p1.y - dummyOrigin.y)*(p1.y - dummyOrigin.y) );
+        float cToP2Length = sqrt((p2.x - dummyOrigin.x)*(p2.x - dummyOrigin.x) + (p2.y - dummyOrigin.y)*(p2.y - dummyOrigin.y) );
+        
+        float alpha1 = atan2f((p1.y - dummyOrigin.y), (p1.x - dummyOrigin.x));
+        float alpha2 = atan2f((p2.y - dummyOrigin.y), (p2.x - dummyOrigin.x));
+        
+        
+        if (alpha1 < 0) {
+            alpha1 = alpha1 + 2 * M_PI;
+        }
+        
+        if (alpha2 < 0) {
+            alpha2 = alpha2 + 2 * M_PI;
+        }
+        
+        float diff = alpha1 - alpha2;
+        
         for (int i = 0; i < nv; i++) {
-            float fi = i * 2 * M_PI / nv;
+            float fi;
+            if (diff < M_PI) {
+                if (diff < 0) {
+                    if (diff < - M_PI) {
+                        if(i < (nv/2)) {
+                            fi = alpha1 - (i * alpha1 / (nv/2));
+                        }
+                        else {
+                            fi = 2 * M_PI - ((i - (nv/2)) * (2 * M_PI - alpha2) / (nv/2));
+                        }
+                    }
+                    else {
+                        fi = alpha1 + i * (alpha2 - alpha1) / nv;
+                    }
+                    
+                }
+                if (diff > 0) {
+                    fi = alpha1 - (i * diff / nv);                }
+            }
+            else {
+                if(alpha1 > M_PI) {
+                    if(i < (nv/2)) {
+                        fi = alpha1 + (i * (2 * M_PI - alpha1) / (nv/2));
+                    }
+                    else {
+                        fi = (i - (nv/2)) * alpha2 / (nv/2);
+                    }
+                }
+                if(alpha1 < M_PI) {
+                   if(i < (nv/2)) {
+                       fi = alpha1 - (i * alpha1 / (nv/2));
+                   }
+                   else {
+                       fi = 2 * M_PI - ((i - (nv/2)) * (2 * M_PI - alpha2) / (nv/2));
+                   }
+                }
+            }
             vec4 mVertex = vec4(cosf(fi), sinf(fi), 0, 1) * M();
             vertices.push_back(mVertex.x);
             vertices.push_back(mVertex.y);
             vertices.push_back(1.0f);
             vertices.push_back(0.0f);
-            vertices.push_back(1.0f);
+            vertices.push_back(0.0f);
+            if(i == 0) {
+                triangleVertices.push_back(mVertex.x);
+                triangleVertices.push_back(mVertex.y);
+            }
+            if (i >= 1) {
+                x = vertices[vertices.size() - 10];
+                y = vertices[vertices.size() - 9];
+                dx = vertices[vertices.size() - 5] - x;
+                dy = vertices[vertices.size() - 4] - y;
+                sideLength = sideLength + calculateSideLength(x, y, dx, dy);
+            }
         }
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_DYNAMIC_DRAW);
+        
+        return sideLength;
     }
     
+    void copyVertices() {
+        for (int i = 0; i < vertices.size(); i++) {
+            verticesCopy.push_back(vertices.at(i));
+        }
+    }
     
+    void calculateAngles() {
+        float a = triangleVertices[0] - origins[0];
+        float b = triangleVertices[1] - origins[1];
+        float c = triangleVertices[0] - origins[4];
+        float d = triangleVertices[1] - origins[5];
+        alpha = acos(dot(normalize(vec2(a, b)), normalize(vec2(c, d)))) / M_PI * 180;
+        if (alpha > 90.0f) { alpha = 180.0f - alpha; }
+
+        a = triangleVertices[2] - origins[0];
+        b = triangleVertices[3] - origins[1];
+        c = triangleVertices[2] - origins[2];
+        d = triangleVertices[3] - origins[3];
+        beta = acos(dot(normalize(vec2(a, b)), normalize(vec2(c, d)))) / M_PI * 180;
+        if (beta > 90.0f) { beta = 180.0f - beta; }
+
+        a = triangleVertices[4] - origins[2];
+        b = triangleVertices[5] - origins[3];
+        c = triangleVertices[4] - origins[4];
+        d = triangleVertices[5] - origins[5];
+        gamma = acos(dot(normalize(vec2(a, b)), normalize(vec2(c, d)))) / M_PI * 180;
+        if (gamma > 90.0f) { gamma = 180.0f - gamma; }
+    }
     
+    int calculateIntersections(vec2 prev, vec2 next) {
+        
+        int numberOfIntersections = 0;
+        
+        float a = prev.x;
+        float b = prev.y;
+        float c = next.x;
+        float d = next.y;
+        
+        for (int i = 0; i < vertices.size() - 5; i = i + 5) {
+            
+            vec2 first = vec2(vertices.at(i), vertices.at(i+1));
+            vec2 second = vec2(vertices.at(i+5), vertices.at(i+6));
+            
+            float e = first.x;
+            float f = first.y;
+            float g = second.x;
+            float h = second.y;
+            
+            // The equations below were all calculated via Wolfram Alpha from the lecture's equations
+            float t2 = (g * (b - d) + a * (d - h) + c * (h - b)) / (g * (b - d) + e * (d - b) + (a - c) * (f - h));
+            float t1 = ((e - g) * t2 + g - c) / (a - c);
+            
+            float error = 0.0001f;
+            
+            if (t1 > (0.0f + error) && t1 < (1.0f - error) && t2 > (0.0f + error) && t2 < (1.0f - error)) {
+                numberOfIntersections++;
+            }
+            
+        }
+        
+        return numberOfIntersections;
+    }
     
+    float calculateSideLength(float x, float y, float dx, float dy) {
+        float ds = 0.0f;
+        float up = sqrtf(dx * dx + dy * dy);
+        float down = (1 - x * x - y * y);
+        ds = up / down;
+        return ds;
+    }
+    
+    void calculateEars() {
+        for (int i = 5; i < verticesCopy.size() - 10; i=i+5) {
+            
+            vec2 prev = vec2(verticesCopy.at(i-5), verticesCopy.at(i-4));
+            vec2 current = vec2(verticesCopy.at(i), verticesCopy.at(i+1));
+            vec2 next = vec2(verticesCopy.at(i+5), verticesCopy.at(i+6));
+            
+            int numberOfIntersections = calculateIntersections(prev, next);
+            
+            if(numberOfIntersections == 0) {
+                vec2 half = vec2((prev.x + next.x) / 2, (prev.y + next.y) / 2);
+                numberOfIntersections = calculateIntersections(half, vec2(2.0f, 2.0f));
+                 if (numberOfIntersections % 2 != 0) {
+                    ears.push_back(prev.x);
+                    ears.push_back(prev.y);
+                    ears.push_back(0.8f);
+                    ears.push_back(0.8f);
+                    ears.push_back(0.8f);
+                    ears.push_back(current.x);
+                    ears.push_back(current.y);
+                    ears.push_back(1.0f);
+                    ears.push_back(1.0f);
+                    ears.push_back(1.0f);
+                    ears.push_back(next.x);
+                    ears.push_back(next.y);
+                    ears.push_back(0.8f);
+                    ears.push_back(0.8f);
+                    ears.push_back(0.8f);
+                    
+                    verticesCopy.erase(verticesCopy.begin() + i, verticesCopy.begin() + i + 5);
+                    i = 0;
+                }
+            }
+        }
+    }
+
+        
     void AddPoint(float x, float y) {
         if (points.size() <= 15) {
             if (points.size() == 15) {
@@ -193,21 +428,18 @@ public:
                    origin.x,   origin.y,  0,  1);
     }
     
+    mat4 Unit() {
+        return mat4(1,   0,  0,  0,
+                    0,   1,  0,  0,
+                    0,   0,  1,  0,
+                    0,   0,  0,  1);
+    }
+    
+
     void Draw() {
-        if (points.size() == 15) {
-            calculateOrigin(points.at(0), points.at(1), points.at(5), points.at(6));
-            gpuProgram.setUniform(M(), "MVP");
+            gpuProgram.setUniform(Unit(), "MVP");
             glBindVertexArray(vao);
             glDrawArrays(GL_LINE_LOOP, 0, vertices.size() / 5);
-            calculateOrigin(points.at(5), points.at(6), points.at(10), points.at(11));
-            gpuProgram.setUniform(M(), "MVP");
-            glBindVertexArray(vao);
-            glDrawArrays(GL_LINE_LOOP, 0, vertices.size() / 5);
-            calculateOrigin(points.at(10), points.at(11), points.at(0), points.at(1));
-            gpuProgram.setUniform(M(), "MVP");
-            glBindVertexArray(vao);
-            glDrawArrays(GL_LINE_LOOP, 0, vertices.size() / 5);
-        }
     }
 };
 
@@ -236,9 +468,9 @@ public:
             vec4 mVertex = vec4(cosf(fi), sinf(fi), 0, 1) * M();
             vertices.push_back(mVertex.x);
             vertices.push_back(mVertex.y);
-            vertices.push_back(0.75f);
-            vertices.push_back(0.75f);
-            vertices.push_back(0.75f);
+            vertices.push_back(0.5f);
+            vertices.push_back(0.5f);
+            vertices.push_back(0.5f);
         }
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_DYNAMIC_DRAW);
     }
@@ -261,54 +493,95 @@ public:
     }
 };
 
+    
+class Painter {
+    unsigned int vao, vbo;
+    
+    std::vector<float> addedEars;
+    
+public:
+    void create(std::vector<float> ears) {
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+        
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(0));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
+        
+        for(int i=0; i < ears.size(); i++) {
+            addedEars.push_back(ears.at(i));
+        }
+        
+        glBufferData(GL_ARRAY_BUFFER, addedEars.size() * sizeof(float), &addedEars[0], GL_DYNAMIC_DRAW);
+        
+    }
+    
+
+    mat4 M() {
+        return mat4(1,   0,  0,  0,
+                   0,   1,  0,  0,
+                   0,   0,  1,  0,
+                   0,   0,  0,  1);
+    }
+    
+    void Draw() {
+        gpuProgram.setUniform(M(), "MVP");
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, addedEars.size() / 5);
+    }
+};
+
+
 Circle circle;
 Point point;
 SiriusCircle siriusCircle;
+Painter painter;
 
-// Initialization, create an OpenGL context
+std::vector<float> points;
+
 void onInitialization() {
     glViewport(0, 0, windowWidth, windowHeight);
     
     circle.create();
     point.create();
-    siriusCircle.create();
 
     gpuProgram.create(vertexSource, fragmentSource, "outColor");
 }
 
-// Window has become invalid: Redraw
 void onDisplay() {
-    glClearColor(0, 0, 0, 0);     // background color
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear frame buffer
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     circle.Draw();
     point.Draw();
-    siriusCircle.Draw();
+    if(points.size() == 15) {
+        painter.Draw();
+        siriusCircle.Draw();
+    }
 
-    glutSwapBuffers(); // exchange buffers for double buffering
+    glutSwapBuffers();
 }
 
-// Key of ASCII code pressed
 void onKeyboard(unsigned char key, int pX, int pY) {
-    if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
+    if (key == 'd') glutPostRedisplay();
 }
 
-// Key of ASCII code released
 void onKeyboardUp(unsigned char key, int pX, int pY) {
 }
 
-// Move mouse with key pressed
-void onMouseMotion(int pX, int pY) {    // pX, pY are the pixel coordinates of the cursor in the coordinate system of the operation system
-    // Convert to normalized device space
-    float cX = 2.0f * pX / windowWidth - 1;    // flip y axis
+void onMouseMotion(int pX, int pY) {
+    float cX = 2.0f * pX / windowWidth - 1;
     float cY = 1.0f - 2.0f * pY / windowHeight;
 }
 
-// Mouse click event
-void onMouse(int button, int state, int pX, int pY) { // pX, pY are the pixel coordinates of the cursor in the coordinate system of the operation system
-    // Convert to normalized device space
-    float cX = 2.0f * pX / windowWidth - 1;    // flip y axis
+void onMouse(int button, int state, int pX, int pY) {
+    float cX = 2.0f * pX / windowWidth - 1;
     float cY = 1.0f - 2.0f * pY / windowHeight;
+    
+    float fi = atanf(cY / cX);
 
     char * buttonStat;
     switch (state) {
@@ -316,20 +589,35 @@ void onMouse(int button, int state, int pX, int pY) { // pX, pY are the pixel co
     case GLUT_UP:   buttonStat = "released"; break;
     }
 
-    switch (button) {
-    case GLUT_LEFT_BUTTON:   printf("Left button %s at (%3.2f, %3.2f)\n", buttonStat, cX, cY);   break;
-    case GLUT_MIDDLE_BUTTON: printf("Middle button %s at (%3.2f, %3.2f)\n", buttonStat, cX, cY); break;
-    case GLUT_RIGHT_BUTTON:  printf("Right button %s at (%3.2f, %3.2f)\n", buttonStat, cX, cY);  break;
+    if (fabs(cY) <= fabs(sinf(fi))) {
+       if (points.size() < 15) {
+        if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+            if (points.size() < 15) {
+                point.AddPoint(cX, cY);
+                vec4 mVertex = vec4(cX, cY, 0, 1);
+                points.push_back(mVertex.x);
+                points.push_back(mVertex.y);
+                points.push_back(1);
+                points.push_back(0);
+                points.push_back(0);
+            }
+            
+            siriusCircle.AddPoint(cX, cY);
+            
+            if (points.size() == 15) {
+                siriusCircle.create(points.at(0), points.at(1), points.at(5), points.at(6), points.at(10), points.at(11));
+                std::vector<float> ears = siriusCircle.ears;
+                painter.create(ears);
+            }
+
+            glutPostRedisplay();
+        }
     }
     
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        point.AddPoint(cX, cY);
-        siriusCircle.AddPoint(cX, cY);
-        glutPostRedisplay();
     }
+    
 }
 
-// Idle event indicating that some time elapsed: do animation here
 void onIdle() {
-    long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
+    long time = glutGet(GLUT_ELAPSED_TIME);
 }
